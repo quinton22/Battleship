@@ -1,6 +1,8 @@
+// Variables to change how the game is played
+var shipSizes = [5, 4, 3, 3, 2]; // size of each ship
+
 var canvas = document.querySelector("canvas");
 var c = canvas.getContext("2d");
-
 var startingPositions = {
    carrier: [0, 0],
    battleship: [0, 0],
@@ -9,20 +11,34 @@ var startingPositions = {
    destroyer: [0, 0]
 }
 
-class Board {
-   constructor(x, y, height, width, shipPositions) {
+class Ship {
+   constructor(x, y, height, width) {
       this.x = x;
       this.y = y;
       this.height = height;
       this.width = width;
-      this.shipPositions = shipPositions;
-      this.shipLengths = {
-         carrier: 5,
-         battleship: 4,
-         cruiser: 3,
-         submarine: 3,
-         destroyer: 2
-      }
+      this.orientation = "v";
+      this.hit = false;
+   }
+}
+
+class Board {
+   constructor(x, y, height, width) {
+      this.x = x;
+      this.y = y;
+      this.height = height;
+      this.width = width;
+      this.size = 10;
+      this.carrier = new Ship(this.x - 100, this.y, shipSizes[0] * this.height/(this.size + 1), this.width/(this.size + 1));
+      this.battleship = new Ship(this.x - 100, this.y, shipSizes[1] * this.height/(this.size + 1), this.width/(this.size + 1));
+      this.cruiser = new Ship(this.x - 100, this.y, shipSizes[2] * this.height/(this.size + 1), this.width/(this.size + 1));
+      this.submarine = new Ship(this.x - 100, this.y, shipSizes[3] * this.height/(this.size + 1), this.width/(this.size + 1));
+      this.destroyer = new Ship(this.x - 100, this.y, shipSizes[4] * this.height/(this.size + 1), this.width/(this.size + 1));
+
+   }
+
+   draw() {
+      
    }
 }
 
