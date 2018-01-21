@@ -4,34 +4,40 @@
       <style>
          body {
             margin: 0;
-            background: rgba(0, 50, 255, 0.5);
+            margin: 0;
+            background: #5d98f7;
+            overflow: hidden;
          }
          canvas {
-            border: 1px black solid;
             display: none;
          }
          div {
             text-align: center;
          }
+         .headerDiv {
+            border-bottom: 1px solid #4a7dce;
+         }
       </style>
    </head>
    <body>
-      <div id="titleDiv">
-         <h1><u>Battleship</u></h1>
-         <h3>Choose a mode:</h3>
-         <button id="onePlayer" class="btn">1 Player</button>
-         <button id="twoPlayer" class="btn">2 Player</button>
+      <div height="100%">
+         <div id="titleDiv">
+            <h1><u>Battleship</u></h1>
+            <h3>Choose a mode:</h3>
+            <button id="onePlayer" class="btn">1 Player</button>
+            <button id="twoPlayer" class="btn">2 Player</button>
+         </div>
+
+         <div id="onePlayerMode" class="headerDiv" style="display: none">
+            <h2>One Player</h2>
+         </div>
+         <div id="twoPlayerMode" class="headerDiv" style="display: none">
+            <h2>Two Players</h2>
+            <p>Player 1, place your ships.</p>
+         </div>
+         <canvas></canvas>
       </div>
 
-      <div id="onePlayerMode" class="headerDiv" style="display: none">
-         <h4>One Player</h4>
-      </div>
-      <div id="twoPlayerMode" class="headerDiv" style="display: none">
-         <h4>Two Players</h4>
-      </div>
-
-      <canvas>
-      </canvas>
       <script type="text/javascript" src="content.js"></script>
    </body>
 </html>
