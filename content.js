@@ -5,8 +5,6 @@ const COLUMN_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "
 
 var boardsOnScreen = [];
 
-
-
 class Ship {
    constructor(x, y, height, width, length, id) {
       this.x = x; // x position (px)
@@ -22,22 +20,26 @@ class Ship {
          this.hit.push(false);
       }
       this.drawing = null;
+      this.dragging = false;
+      this.focused = false;
+      this.mousePosition = [];
    }
 
-   click() {
-      console.log("click");
+   changeOrientation() {
+      console.log("dblclick");
       let newHeight = this.width;
       this.width = this.height;
       this.height = newHeight;
       this.orientation = this.orientation === "v" ? "h" : "v";
-      let parent = this.deleteDraw();
-      parent.appendChild(this.draw());
+      this.redraw();
    }
 
-   deleteDraw() {
-      let parent = this.drawing.parentNode;
-      this.drawing ? parent.removeChild(this.drawing) : null;
-      return parent;
+   redraw() {
+      let ship = this.drawing;
+      ship.style.top = (this.y).toString() + "px";
+      ship.style.left = (this.x).toString() + "px";
+      ship.style.height = (this.height).toString() + "px";
+      ship.style.width = (this.width).toString() + "px";
    }
 
    // draws a ship which is a gray rectangle
@@ -49,20 +51,70 @@ class Ship {
       ship.style.width = (this.width).toString() + "px";
       ship.className = "ship";
       ship.id = this.id;
-      ship.setAttribute("draggable", "true");
 
       this.drawing = ship;
 
       let _this = this;
-      this.drawing.addEventListener("click", function() {
-         _this.click();
+      this.drawing.addEventListener("dblclick", function shipDblClick() {
+            _this.changeOrientation();
       });
-      this.drawing.addEventListener("dragstart", function (event) {
-         event.dataTransfer.setData("text", event.target.id);
+      this.drawing.addEventListener("mousedown", function shipMouseDown(event) {
+         _this.dragging = true;
+
+      });
+      this.drawing.addEventListener("mouseup", function shipMouseUp(event) {
+         _this.dragging = false;
+         _this.mousePosition = [];
+         _this.drawing.style.zIndex = "2";
+      });
+      this.drawing.addEventListener("mouseover", function shipMouseOver(event) {
+         _this.focused = true;
+
+      });
+
+      this.drawing.addEventListener("mousemove", function shipMouseMove(event) {
+         if (_this.dragging && _this.focused) {
+            _this.drawing.style.zIndex = "3";
+            let rect = _this.drawing.getBoundingClientRect();
+            // rect.left / rect.right vs event.clientX
+            let xDist = event.clientX - rect.left; // distance from mouse to side of ship
+            let yDist = event.clientY - rect.top; // distance from mouse to top of ship
+
+            if (_this.mousePosition.length === 0) {
+               _this.mousePosition = [xDist, yDist];
+            } else if (_this.mousePosition.length !== 0) {
+               _this.x += xDist - _this.mousePosition[0];
+               _this.y += yDist - _this.mousePosition[1];
+               _this.redraw();
+            }
+
+         }
+      });
+
+      document.addEventListener("keypress", function shipKeyPress(event) {
+         if (_this.focused) {
+            let key = event.keyCode ? event.keyCode : event.which;
+            if ((key == 86 || key === 118) && _this.orientation === "h") { // V, v
+               _this.changeOrientation();
+            } else if ((key === 72 || key === 104) && _this.orientation === "v") { // H, h
+                     _this.changeOrientation();
+            } else if (key === 32) { // space
+               _this.changeOrientation();
+            }
+         }
+
+      });
+
+      this.drawing.addEventListener("mouseout", function shipMouseOut(event) {
+         _this.drawing.className = "ship";
+         _this.focused = false;
+         let mouseUp = new MouseEvent('mouseup');
+         _this.drawing.dispatchEvent(mouseUp);
       });
 
       return ship;
    }
+
 }
 
 class Board {
@@ -79,14 +131,39 @@ class Board {
       SHIP_SIZES.forEach(function(length, idx) {
          _this.ships.push(new Ship(0, _this.height/(_this.size + 1), length * _this.height/(_this.size + 1) - 4, _this.width/(_this.size + 1) - 4, length, "ship" + idx.toString()));
       });
+      this.shipset = false;
    }
 
    saveShipPlace() {
+      this.ships.forEach(function(ship) {
+         ship.drawing.className += " shipset";
+         ship.drawing.removeEventListener("dblclick", shipDblClick);
+         ship.drawing.removeEventListener("mousedown", shipMouseDown);
+         ship.drawing.removeEventListener("mouseup", shipMouseUp);
+         ship.drawing.removeEventListener("mouseover", shipMouseOver);
+         ship.drawing.removeEventListener("mouseout", shipMouseOut);
+      });
       return;
    }
 
+   redraw() {
+      let trArray = this.drawing.querySelectorAll("tr");
+      let _this = this;
+      this.drawing.querySelector("table").setAttribute("height", this.height.toString() + "px");
+      this.drawing.querySelector("table").setAttribute("width", this.width.toString() + "px");
+      trArray.forEach(function(tr) {
+         tr.setAttribute("height", (_this.height / (_this.size + 1)).toString() + "px"); // check
+         tr.style.width = (_this.width).toString() + "px";
+      });
+      this.ships.forEach(function(s) {
+         s.redraw();
+      });
+   }
+
    deleteDraw() {
-      saveShipPlace();
+      if (this.shipset) {
+         saveShipPlace();
+      }
       this.drawing ? this.drawing.parentNode.removeChild(this.drawing) : null;
    }
 
@@ -101,6 +178,7 @@ class Board {
 
 
       let tableDiv = document.createElement("div"); // table container
+      tableDiv.id = this.player;
       let table = document.createElement("table"); // table
       tableDiv.appendChild(table);
 
@@ -134,9 +212,9 @@ class Board {
                // adds id to each cell in the form [col]_[row]
                td.id = COLUMN_LETTERS[(r - 1) % this.size] + Math.floor((r - 1) / this.size).toString() + "_" + q.toString();
             }
-            td.setAttribute("width", this.width / (this.size + 1));
+            td.setAttribute("width", this.width / (this.size + 1)); // check
             tr.appendChild(td);
-            tr.setAttribute("height", this.height / (this.size + 1));
+            tr.setAttribute("height", this.height / (this.size + 1)); // check
          }
          tr.style.width = (this.width).toString() + "px";
          table.appendChild(tr);
@@ -146,9 +224,6 @@ class Board {
 
       tableDiv.appendChild(table);
       tableDiv.className = "table-div";
-
-      // Create the grid lines on the board
-      let blockSize = [this.width/(this.size + 1), this.height/(this.size + 1)]; // width of one block and height of one block
 
       this.ships.forEach(function (ship) {
          tableDiv.appendChild(ship.draw());
@@ -162,14 +237,20 @@ class Board {
 window.addEventListener("resize", function () {
    // set board height and width on resize
    let boardHeight = setBoardHeight();
+   console.log("boardheight", boardHeight);
    boardsOnScreen.forEach(function(b) {
-      b.deleteDraw();
       b.height = boardHeight;
       b.width = boardHeight;
       b.ships.forEach(function(s) {
-         // FINISH ======================= !!!!!
+         if (s.orientation === "v") {
+            s.height = s.length * (boardHeight / (b.size + 1)) - 4;
+            s.width = boardHeight / (b.size + 1) - 4;
+         } else {
+            s.width = s.length * (boardHeight / (b.size + 1)) - 4;
+            s.height = boardHeight / (b.size + 1) - 4;
+         }
       });
-      b.draw();
+      b.redraw();
    });
 });
 
@@ -234,8 +315,8 @@ function initTwoPlayer() {
 function setBoardHeight() {
    let boardContainer = document.getElementById("board-container");
    let maxSize = (window.innerHeight - document.querySelector("header").offsetHeight) * .6;
-   let minSize = 230;
-   let height = boardContainer.offsetWidth < 800 ? boardContainer.offsetHeight/3 : boardContainer.offsetWidth/3;
+   let minSize = 190;
+   let height = boardContainer.offsetWidth/3;
    if (height > maxSize) {
       return maxSize;
    } else if (height < minSize) {
@@ -277,4 +358,4 @@ function setBoardHeight() {
 //
 // function mouseup(e) {
 //      dragIdx = -1; //reset for next mousedown
-//     canvas.removeListener(.... //remove the move/up events when done
+//     canvas.removeEventListener(.... //remove the move/up events when done
