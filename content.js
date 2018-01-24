@@ -74,7 +74,7 @@ class Ship {
          let tableBottomBound = table.offsetHeight - _this.height + table.querySelector("tr").offsetHeight/2;
 
          if (_this.x > tableLeftBound && _this.y > tableTopBound && _this.x < tableRightBound && _this.y < tableBottomBound) {
-            
+
             // find closest row and snap to it
             let trPos, tdPos;
             let shipPos = _this.drawing.getBoundingClientRect();
@@ -182,6 +182,9 @@ class Board {
       this.size = 10; // Playable grid size
       this.drawing = null;
 
+      this.shipPlaces = [];
+      this.guesses = [];
+
       // Creates array of Ship objects
       this.ships = [];
       let _this = this; // allows this to work in foreach loop
@@ -193,14 +196,32 @@ class Board {
 
    saveShipPlace() {
       this.ships.forEach(function(ship) {
+         // clone to remove event listeners
+         let clone = ship.drawing.cloneNode();
+         ship.drawing.parentNode.replaceChild(clone, ship.drawing);
+         ship.drawing = clone;
          ship.drawing.className += " shipset";
-         ship.drawing.removeEventListener("dblclick", shipDblClick);
-         ship.drawing.removeEventListener("mousedown", shipMouseDown);
-         ship.drawing.removeEventListener("mouseup", shipMouseUp);
-         ship.drawing.removeEventListener("mouseover", shipMouseOver);
-         ship.drawing.removeEventListener("mouseout", shipMouseOut);
+
+         let shipPosition = [];
+         shipPosition.push(ship.spot);
+         if (ship.orientation === "v") {
+            for(let i = 1; i < ship.length; ++i) {
+               shipPosition.push([ship.spot[0] + i, ship.spot[1]]);
+            }
+         } else {
+            for(let i = 1; i < ship.length; ++i) {
+               shipPosition.push([ship.spot[0], ship.spot[1] + i]);
+            }
+         }
+         console.log(shipPosition);
+         this.shipPlaces.push(shipPosition);
       });
-      return;
+   }
+
+   hideShips() {
+      this.ships.forEach(function(ship) {
+         ship.drawing.style.display = "none";
+      });
    }
 
    redraw() {
@@ -218,9 +239,6 @@ class Board {
    }
 
    deleteDraw() {
-      if (this.shipset) {
-         saveShipPlace();
-      }
       this.drawing ? this.drawing.parentNode.removeChild(this.drawing) : null;
    }
 
@@ -230,6 +248,7 @@ class Board {
       tDivContainer.className = "table-div-container";
 
       let shipContainer = document.createElement("aside");
+      shipContainer.id = "ship-container";
       shipContainer.innerHTML = "<strong>Ships:</strong>";
       tDivContainer.appendChild(shipContainer);
 
@@ -267,7 +286,7 @@ class Board {
                td = document.createElement("td");
 
                // adds id to each cell in the form [col]_[row]
-               td.id = COLUMN_LETTERS[(r - 1) % this.size] + Math.floor((r - 1) / this.size).toString() + "_" + q.toString();
+               td.id = (r - 1).toString() + "_" +(q - 1).toString();
             }
             td.setAttribute("width", this.width / (this.size + 1)); // check
             tr.appendChild(td);
@@ -293,15 +312,28 @@ class Board {
 // handles resizing of window
 window.addEventListener("resize", function () {
    // set board height and width on resize
+   let previousHeight;
    let boardHeight = setBoardHeight();
    boardsOnScreen.forEach(function(b) {
+      previousHeight = b.height;
       b.height = boardHeight;
       b.width = boardHeight;
       b.ships.forEach(function(s) {
          if (s.orientation === "v") {
             s.height = s.length * (boardHeight / (b.size + 1)) - 6;
             s.width = boardHeight / (b.size + 1) - 6;
-            console.log(s.x);
+
+            if (s.spot) {
+               let table = s.drawing.parentNode.querySelector("table");
+               let bRectTd = table.querySelectorAll("td")[s.spot[0] * b.size + s.spot[1]].getBoundingClientRect();
+               let bRectDiv = table.parentNode.parentNode.getBoundingClientRect();
+               s.y = bRectTd.top - bRectDiv.top + table.querySelector("td").offsetHeight * .06;
+               s.x = bRectTd.left - bRectDiv.left + table.querySelector("td").offsetWidth * .06;
+            } else {
+               s.x = s.x * b.height / previousHeight;
+               s.y = s.y * b.height / previousHeight;
+            }
+
          } else {
             s.width = s.length * (boardHeight / (b.size + 1)) - 6;
             s.height = boardHeight / (b.size + 1) - 6;
@@ -328,18 +360,44 @@ window.onload = function() {
    // click event on instructions button
    document.getElementById("instructions-btn").addEventListener("click", function() {
       console.log("Instructions Page")
+      hideTitle(3);
+   });
+
+   document.getElementById("back-btn").addEventListener("click", function() {
+      let titleDiv = document.getElementById("title-div");
+
+      if (document.getElementById("instr-container").style.display === "block") {
+         document.getElementById("instr-header").style.display = "none";
+         document.getElementById("instr-container").style.display = "none";
+         titleDiv.style.display = "block";
+      } else if (document.getElementById("one-player-mode").style.display === "block") {
+         document.getElementById("one-player-mode").style.display = "none";
+         titleDiv.style.display = "block";
+         boardsOnScreen.forEach(function (b) {
+            b.deleteDraw();
+         });
+         document.getElementById("board-container").style.display = "none";
+      } else if (document.getElementById("two-player-mode").style.display === "block") {
+         document.getElementById("two-player-mode").style.display = "none";
+         titleDiv.style.display = "block";
+         boardsOnScreen = [];
+         document.getElementsByClassName("table-div-container")[0].parentNode.removeChild(document.getElementsByClassName("table-div-container")[0]);
+         document.getElementById("board-container").style.display = "none";
+      }
    });
 };
 
 // Hides the titleDiv and calls mode function to initiate game
 function hideTitle(mode) {
-   document.getElementById("titleDiv").style.display = "none";
+   document.getElementById("title-div").style.display = "none";
    document.getElementById("board-container").style.display = "block"; // shows board container
 
    if (mode === 1) {
       initOnePlayer();
-   } else {
+   } else if (mode === 2) {
       initTwoPlayer();
+   } else {
+      goToInstr();
    }
 }
 
@@ -352,21 +410,60 @@ function initOnePlayer() {
 function initTwoPlayer() {
    let boardHeight = setBoardHeight(); // Sets board height and width depending on the page size
 
-   // creates board
+   // creates boards
    let board1 = new Board(boardHeight, boardHeight, "Player One");
    boardsOnScreen.push(board1);
+   let board2 = new Board(boardHeight, boardHeight, "Player Two");
+   boardsOnScreen.push(board2);
 
    document.getElementById("two-player-mode").style.display = "block";
 
+
+   let instrP = document.createElement("p");
+   instrP.innerHTML = "Place ships on the board by dragging them. Change their orientation by double clicking or pressing space, h, or v while hovered over them. Click \"Done\" when finished.";
+   document.getElementById("instructions-aside").appendChild(instrP);
+   instrP.setAttribute("margin-top", "10%");
+
    board1.draw();
+   board2.draw();
 
-   board1.drawing.addEventListener("dragover", function (event) {
-      event.preventDefault();
-   });
-   board1.drawing.addEventListener("drop", function (event) {
-      event.preventDefault();
+   // SET TIMEOUT FOR ASIDE TO DISPLAY
+   let doneBtn = document.getElementById("done-btn");
+   let doneBtnClick;
+   doneBtn.addEventListener("click", doneBtnClick = function () {
+      if (board1.drawing.style.display = "block") {
+         board1.saveShipPlaces();
+         board1.drawing.style.display = "none";
+         board1.drawing.querySelector("aside").style.display = "none";
+         board2.drawing.style.display = "block";
+      } else { // board 2 handler
+         board2.saveShipPlaces();
+         board1.drawing.style.display = "none";
+         board1.drawing.querySelector("aside").style.display = "none";
+      }
    });
 
+   doneBtn.removeEventListener("click", doneBtnClick);
+
+   document.getElementById
+   let commentary = document.createElement("p");
+   let randInt = Math.floor(Math.random() * 2);
+   let startingPlayer = "Player One";
+   if (randInt === 1) {
+      startingPlayer = "Player Two";
+   }
+   commentary.innerHTML = startingPlayer + " has been picked to go first. Click \"Start\" to begin";
+   doneBtn.innerHTML = "Start";
+   doneBtn.parentNode.insertBefore(commentary);
+
+
+
+
+}
+
+function goToInstr() {
+   document.getElementById("instr-container").style.display = "block";
+   document.getElementById("instr-header").style.display = "block";
 }
 
 function setBoardHeight() {
@@ -382,37 +479,3 @@ function setBoardHeight() {
       return height;
    }
 }
-// //start with only the mousedown event attached
-// canvas.addEventListener("mousedown",mousedown);
-//
-// //and some vars to track the dragged item
-// var dragIdx = -1;
-// var dragOffsetX, dragOffsetY;
-//
-// function mousedown(e){
-//     //...calc coords into mouseX, mouseY
-//     for(i=circArray.length; i>=0; i--){ //loop in reverse draw order
-//         dx = mouseX - circArray[i].x;
-//         dy = mouseY - circArray[i].y;
-//         if (Math.sqrt((dx*dx) + (dy*dy)) < circArray[i].r) {
-//             //we've hit an item
-//             dragIdx = i; //store the item being dragged
-//             dragOffsetX = dx; //store offsets so item doesn't 'jump'
-//             dragOffsetY = dy;
-//             canvas.addEventListener("mousemove",mousemove); //start dragging
-//             canvas.addEventListener("mouseup",mouseup);
-//             return;
-//         }
-//     }
-// }
-//
-// function mousemove(e) {
-//      //...calc coords
-//      circArray[dragIdx].x = mouseX + dragOffsetX; //drag your item
-//      circArray[dragIdx].y = mouseY + dragOffsetY;
-//      //...repaint();
-// }
-//
-// function mouseup(e) {
-//      dragIdx = -1; //reset for next mousedown
-//     canvas.removeEventListener(.... //remove the move/up events when done

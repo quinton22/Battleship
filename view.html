@@ -5,6 +5,13 @@
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <title>Battleship</title>
    <style>
+      :root {
+         --bg-color: #5d98f7;
+         --header-border: #4a7dce;
+         --table-bg: #5483ce;
+         --th-bg: #fff;
+         --instr-aside-bg: #a5b3c9;
+      }
       * {
          font-family: monospace;
          /* Text is not highlighted */
@@ -21,7 +28,7 @@
       body {
          margin: 0;
          padding: 0;
-         background: #5d98f7;
+         background: var(--bg-color);
          height: 100%;
          overflow-y: hidden;
       }
@@ -33,14 +40,33 @@
          padding-top: 20px;
       }
       .header-div {
-         border-bottom: 1px solid #4a7dce;
+         border-bottom: 1px solid var(--header-border);
          padding-top: 10px;
          margin: 0;
+         display: none;
+      }
+      #instr-container {
+         overflow-y: auto;
+         display: none;
+         width: 100%;
+      }
+      #instr-container-child {
+         width: 50%;
+         text-align: left;
+         padding-left: 20%;
+      }
+      #back-btn {
+         font-size: 4vw;
+         color: gray;
+      }
+      #back-btn:hover {
+         color: white;
+         cursor: pointer;
       }
       .table-div * {
          border: 1px solid black;
          border-collapse: collapse;
-         background: #5483CE;
+         background: var(--table-bg);
       }
       caption {
          background: none !important;
@@ -49,11 +75,11 @@
          font-size: 1.5vw;
       }
       th {
-         background: #FFF !important;
+         background: var(--th-bg) !important;
          vertical-align: middle;
          text-align: center;
       }
-      aside {
+      #ship-container {
          float: left;
          display: block;
          position: relative;
@@ -94,17 +120,27 @@
        }
        #container-table {
           border: none;
-          background: #5d98f7;
+          background: var(--bg-color);
           width: 100%;
           height: 90%;
           vertical-align: center;
           margin: auto;
        }
+       #instructions-aside {
+          z-index: 4;
+          left: -48%;
+          position: absolute;
+          height: 100%;
+          width: 50%;
+          background: var(--instr-aside-bg);
+          border-left: 1px solid white;
+       }
    </style>
 </head>
 <body>
    <header>
-      <div id="titleDiv">
+      <span id="back-btn">&times;</span>
+      <div id="title-div">
          <h1><u>Battleship</u></h1>
          <h3>Choose a mode:</h3>
          <button id="one-player-btn">1 Player</button>
@@ -113,18 +149,46 @@
          <button id="instructions-btn">Instructions</button>
       </div>
 
-      <div id="one-player-mode" class="header-div" style="display: none">
+      <div id="one-player-mode" class="header-div">
          <h2>One Player</h2>
       </div>
-      <div id="two-player-mode" class="header-div" style="display: none">
+      <div id="two-player-mode" class="header-div">
          <h2>Two Players</h2>
       </div>
+      <div id="instr-header" class="header-div">
+         <h2>Instructions</h2>
+      </div>
    </header>
+   <div id="instr-container">
+      <div id="instr-container-child">
+         <p><strong>How to Play:</strong></p>
+         <ol>
+            <li>One player start by dragging ships onto the board. Once all the ships are on the board, press done.</li>
+            <li>The next player should then place their ships.</li>
+            <li>The person to go first is chosen at random. They will click on a space that they think the opponent placed a battleship. It will either result in a hit or a miss.</li>
+            <li>The other player will then take their turn.</li>
+            <li>Once a player hits all parts of a ship, it sinks. And once a player sinks all of the opponent's ships, the game is won!</li>
+            <li>Pull the bar on the right to display more information during gameplay.</li>
+         </ol>
+         <br/>
+         <p><strong>Settings:</strong></p>
+         <ul>
+            <li id="theme-setting">Theme: Normal<button id="theme-btn">Change</button></li>
+         </ul>
+      </div>
+   </div>
    <div id="board-container">
+      <aside id="instructions-aside">
+      </aside>
       <table id="container-table">
          <tbody>
             <tr>
                <td id="board-cell"></td>
+            </tr>
+            <tr>
+               <td>
+                  <button id="done-btn">Done</button>
+               </td>
             </tr>
          </tbody>
       </table>
