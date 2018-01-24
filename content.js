@@ -16,6 +16,8 @@ class Ship {
       this.orientation = "v"; // v = vertical, h = horizontal
       this.spot = null; //Row and col of the ship, leftmost and uppermost
       this.hit = []; // array of hit / miss starting at uppermost or leftmost
+      this.rememberX = x; // last x position
+      this.rememberY = y; // last x position
       for (let i = 0; i < this.length; ++i) {
          this.hit.push(false);
       }
@@ -26,7 +28,6 @@ class Ship {
    }
 
    changeOrientation() {
-      console.log("dblclick");
       let newHeight = this.width;
       this.width = this.height;
       this.height = newHeight;
@@ -63,9 +64,65 @@ class Ship {
 
       });
       this.drawing.addEventListener("mouseup", function shipMouseUp(event) {
-         _this.dragging = false;
          _this.mousePosition = [];
          _this.drawing.style.zIndex = "2";
+         let table = _this.drawing.parentNode.querySelector("table");
+
+         let tableLeftBound =  table.parentNode.previousSibling.offsetWidth + table.querySelector("td").offsetWidth/2;
+         let tableRightBound = table.parentNode.parentNode.offsetWidth - _this.width + table.querySelector("td").offsetWidth/2;
+         let tableTopBound =  table.querySelector("caption").offsetHeight + table.querySelector("tr").offsetHeight/2;
+         let tableBottomBound = table.offsetHeight - _this.height + table.querySelector("tr").offsetHeight/2;
+
+         if (_this.x > tableLeftBound && _this.y > tableTopBound && _this.x < tableRightBound && _this.y < tableBottomBound) {
+            
+            // find closest row and snap to it
+            let trPos, tdPos;
+            let shipPos = _this.drawing.getBoundingClientRect();
+            let trArray = table.querySelectorAll("tr");
+            let minDist = trArray[0].offsetHeight;
+            let minDistSigned;
+            let row = -1;
+            let col = -1;
+            trArray.forEach(function(tr, idx) {
+               trPos = tr.getBoundingClientRect();
+               if (Math.abs(trPos.top - shipPos.top) < minDist) {
+                  minDistSigned = trPos.top - shipPos.top;
+                  minDist = Math.abs(minDistSigned);
+                  row = idx;
+               }
+            });
+
+            if (_this.dragging) {
+               _this.y += minDistSigned + trArray[row].offsetHeight * .05;
+            }
+
+            let tdArray = trArray[row].querySelectorAll("td");
+            minDist = tdArray[0].offsetWidth;
+            tdArray.forEach(function(td, idx) {
+               tdPos = td.getBoundingClientRect();
+               if (Math.abs(tdPos.left - shipPos.left) < minDist) {
+                  minDistSigned = tdPos.left - shipPos.left;
+                  minDist = Math.abs(minDistSigned);
+                  col = idx;
+               }
+            });
+
+            if (_this.dragging) {
+               _this.x += minDistSigned + tdArray[col].offsetWidth * .06;
+            }
+
+            _this.spot = [row-1, col];
+
+            _this.rememberX = _this.x;
+            _this.rememberY = _this.y;
+            _this.redraw();
+         } else {
+            console.log("Place ship on board");
+            _this.x = _this.rememberX;
+            _this.y = _this.rememberY;
+            _this.redraw();
+         }
+         _this.dragging = false;
       });
       this.drawing.addEventListener("mouseover", function shipMouseOver(event) {
          _this.focused = true;
@@ -129,7 +186,7 @@ class Board {
       this.ships = [];
       let _this = this; // allows this to work in foreach loop
       SHIP_SIZES.forEach(function(length, idx) {
-         _this.ships.push(new Ship(0, _this.height/(_this.size + 1), length * _this.height/(_this.size + 1) - 4, _this.width/(_this.size + 1) - 4, length, "ship" + idx.toString()));
+         _this.ships.push(new Ship(0, _this.height/(_this.size + 1), length * _this.height/(_this.size + 1) - 6, _this.width/(_this.size + 1) - 6, length, "ship" + idx.toString()));
       });
       this.shipset = false;
    }
@@ -237,17 +294,17 @@ class Board {
 window.addEventListener("resize", function () {
    // set board height and width on resize
    let boardHeight = setBoardHeight();
-   console.log("boardheight", boardHeight);
    boardsOnScreen.forEach(function(b) {
       b.height = boardHeight;
       b.width = boardHeight;
       b.ships.forEach(function(s) {
          if (s.orientation === "v") {
-            s.height = s.length * (boardHeight / (b.size + 1)) - 4;
-            s.width = boardHeight / (b.size + 1) - 4;
+            s.height = s.length * (boardHeight / (b.size + 1)) - 6;
+            s.width = boardHeight / (b.size + 1) - 6;
+            console.log(s.x);
          } else {
-            s.width = s.length * (boardHeight / (b.size + 1)) - 4;
-            s.height = boardHeight / (b.size + 1) - 4;
+            s.width = s.length * (boardHeight / (b.size + 1)) - 6;
+            s.height = boardHeight / (b.size + 1) - 6;
          }
       });
       b.redraw();
