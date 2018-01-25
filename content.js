@@ -6,6 +6,7 @@ const COLUMN_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "
 var boardsOnScreen = [];
 var board1;
 var board2;
+var won = false;
 
 class Ship {
    constructor(x, y, height, width, length, id) {
@@ -14,20 +15,15 @@ class Ship {
       this.height = height; // height (px)
       this.width = width; // width (px)
       this.length = length // length of ship (number of blocks)
-      this.id = id;
+      this.id = id; // html element id
       this.orientation = "v"; // v = vertical, h = horizontal
       this.spot = null; //Row and col of the ship, leftmost and uppermost
-      this.hit = []; // array of hit / miss starting at uppermost or leftmost
-      this.sunk = false;
       this.rememberX = x; // last x position
       this.rememberY = y; // last x position
-      for (let i = 0; i < this.length; ++i) {
-         this.hit.push(false);
-      }
-      this.drawing = null;
-      this.dragging = false;
-      this.focused = false;
-      this.mousePosition = [];
+      this.drawing = null; // the html object associated with this ship
+      this.dragging = false; // true if ship is being dragged
+      this.focused = false; // true if ship is hovered over
+      this.mousePosition = []; // position of mouse relative to ship
    }
 
    changeOrientation() {
@@ -64,7 +60,7 @@ class Ship {
       });
       this.drawing.addEventListener("mousedown", function shipMouseDown(event) {
          _this.dragging = true;
-
+         _this.drawing.className += " float";
       });
       this.drawing.addEventListener("mouseup", function shipMouseUp(event) {
          _this.mousePosition = [];
@@ -126,6 +122,7 @@ class Ship {
             _this.redraw();
          }
          _this.dragging = false;
+         _this.drawing.className = "ship";
       });
       this.drawing.addEventListener("mouseover", function shipMouseOver(event) {
          _this.focused = true;
@@ -420,24 +417,29 @@ window.onload = function() {
 
    document.getElementById("back-btn").addEventListener("click", function() {
       let titleDiv = document.getElementById("title-div");
-
-      if (document.getElementById("instr-container").style.display === "block") {
+      if (document.getElementById("instr-header").style.display === "inline") {
          document.getElementById("instr-header").style.display = "none";
          document.getElementById("instr-container").style.display = "none";
-         titleDiv.style.display = "ineline-block";
-      } else if (document.getElementById("one-player-mode").style.display === "block") {
+         titleDiv.style.display = "block";
+      } else if (document.getElementById("one-player-mode").style.display === "inline") {
          document.getElementById("one-player-mode").style.display = "none";
-         titleDiv.style.display = "inline-block";
+         titleDiv.style.display = "block";
          boardsOnScreen.forEach(function (b) {
             b.deleteDraw();
          });
          document.getElementById("board-container").style.display = "none";
-      } else if (document.getElementById("two-player-mode").style.display === "block") {
+      } else if (document.getElementById("two-player-mode").style.display === "inline") {
          document.getElementById("two-player-mode").style.display = "none";
-         titleDiv.style.display = "inline-block";
+         titleDiv.style.display = "block";
          boardsOnScreen = [];
          document.getElementsByClassName("table-div-container")[0].parentNode.removeChild(document.getElementsByClassName("table-div-container")[0]);
          document.getElementById("board-container").style.display = "none";
+      }
+      if (won) {
+         document.getElementById("done-btn-cell").removeChild(document.getElementById("done-btn-cell").children[0]);
+         document.getElementById("done-btn-cell").children[0].innerHTML = "Player one, place your ships."
+         document.getElementById("done-btn").innerHTML = "Done";
+         document.getElementById("done-btn").style.display = "inline-block";
       }
    });
 };
@@ -445,11 +447,12 @@ window.onload = function() {
 // Hides the titleDiv and calls mode function to initiate game
 function hideTitle(mode) {
    document.getElementById("title-div").style.display = "none";
-   document.getElementById("board-container").style.display = "block"; // shows board container
 
    if (mode === 1) {
+      document.getElementById("board-container").style.display = "block"; // shows board container
       initOnePlayer();
    } else if (mode === 2) {
+      document.getElementById("board-container").style.display = "block"; // shows board container
       initTwoPlayer();
    } else {
       goToInstr();
@@ -479,7 +482,6 @@ function initTwoPlayer() {
 
    board1.draw();
 
-   // SET TIMEOUT FOR ASIDE TO DISPLAY
    let doneBtnClick;
    document.getElementById("done-btn").addEventListener("click", doneBtnClick = function () {
       if (board1.drawing.parentNode.style.display !== "none") {
@@ -507,6 +509,7 @@ function initTwoPlayer() {
 }
 
 function gameplayTwoPlayer() {
+   document.getElementById("instructions-aside").querySelector("p").innerHTML = "Click a position to guess, it will light up green. Then click \"Done.\" Blocks that are red indicate that you hit your oppenent's ship at that position. Blocks that are gray indicate that you have missed at that position.";
    let doneBtn = document.getElementById("done-btn");
    let randInt = Math.floor(Math.random() * 2);
    let startingPlayer = "Player One";
@@ -515,10 +518,9 @@ function gameplayTwoPlayer() {
    }
    board1.hideShips();
    board2.hideShips();
-   let guess = [];
-   let guessOpen = true;
-   let hit = false;
-   let clicked = false; // Makes sure a position was chosen
+   var guess = [];
+   var guessOpen = true;
+   var clicked = false; // Makes sure a position was chosen
 
    let doneBtnP = document.getElementById("done-btn-cell").querySelector("p");
    doneBtnP.innerHTML =
@@ -540,17 +542,17 @@ function gameplayTwoPlayer() {
          if (randInt === 0) {
             if (guessOpen) {
                doneBtn.innerHTML = "Start";
-               startGuess(board2, guess);
                board2.drawing.parentNode.style.display = "none";
                doneBtnP.innerHTML = "Player Two, your turn.";
+               startGuess(board2, guess);
                randInt = 1;
             }
          } else {
             if (guessOpen) {
                doneBtn.innerHTML = "Start";
-               startGuess(board1, guess);
                board1.drawing.parentNode.style.display = "none";
                doneBtnP.innerHTML = "Player One, your turn.";
+               startGuess(board1, guess);
                randInt = 0;
             }
          }
@@ -566,99 +568,70 @@ function gameplayTwoPlayer() {
          doneBtnP.innerHTML = "Guess a spot and click \"Done\" when finished.";
          if (randInt === 0) {
             board2.drawing.parentNode.style.display = "inline-block";
+            doneBtnP.innerHTML += " Your opponent has " + board2.ships.length.toString();
+            doneBtnP.innerHTML += board2.ships.length > 1 ? " ships left." : " ship left.";
          } else {
             board1.drawing.parentNode.style.display = "inline-block";
+            doneBtnP.innerHTML += " Your oppenent has " + board1.ships.length.toString();
+            doneBtnP.innerHTML += board1.ships.length > 1 ? " ships left." : " ship left.";
          }
-
+      }
+      if (won) {
+         doneBtn.removeEventListener("click", startClick);
       }
 
    });
 
-   // modularize
-   board1.drawing.querySelector("table").addEventListener("click", function (event) {
+   // Handles the clicking of a board
+   var clickBoard = function (board) {
+      board.drawing.querySelector("table").addEventListener("click", function (event) {
 
-      clicked = true;
-      guessOpen = true;
-      hit = false;
-      guess = [];
-      let tdId = event.target.id;
-
-      if (event.target.id) {
-         tdId = tdId.substring(tdId.indexOf("_") + 1);
-         guess.push(~~tdId.substring(0, tdId.indexOf("_")));
-         guess.push(~~tdId.substring(tdId.indexOf("_") + 1));
-         console.log(guess);
-         board1.guesses.forEach(function(g) {
-            if (g[0] === guess[0] && g[1] === guess[1]) {
-               guessOpen = false;
-            }
-         });
-         if (guessOpen) {
-            board1.drawing.querySelectorAll("td").forEach(function (td) {
-               if (td.style.background === "green") {
-                  td.style.background = "#5483ce";
-               }
-            })
-            event.target.style.background = "green";
-         }
-      }
-
-
-   });
-   board2.drawing.querySelector("table").addEventListener("click", function (event) {
          clicked = true;
          guessOpen = true;
-         hit = false;
          guess = [];
          let tdId = event.target.id;
 
          if (event.target.id) {
             tdId = tdId.substring(tdId.indexOf("_") + 1);
-            console.log(tdId);
             guess.push(~~tdId.substring(0, tdId.indexOf("_")));
             guess.push(~~tdId.substring(tdId.indexOf("_") + 1));
-            console.log(guess);
-            board2.guesses.forEach(function(g) {
+            board.guesses.forEach(function(g) {
                if (g[0] === guess[0] && g[1] === guess[1]) {
                   guessOpen = false;
                }
             });
             if (guessOpen) {
-               board2.drawing.querySelectorAll("td").forEach(function (td) {
+               board.drawing.querySelectorAll("td").forEach(function (td) {
                   if (td.style.background === "green") {
                      td.style.background = "#5483ce";
                   }
                })
                event.target.style.background = "green";
             }
-
          }
 
-   });
+
+      });
+   };
+   clickBoard(board1);
+   clickBoard(board2);
 
 }
 
 function startGuess(board, guess) {
    let hit = false;
-   let sunk = true;
-   let shipIdx;
+   let sunk = false;
    board.guesses.push(guess);
-   console.log(board.shipPlaces);
    board.shipPlaces.forEach(function (s, idx) {
       s.forEach(function (p, idx2) {
          if (guess[0] === p[0] && guess[1] === p[1]) {
-            shipIdx = idx;
             hit = true;
-            console.log(p);
-            console.log(board.ships[idx].hit[idx2]);
-            board.ships[idx].hit[idx2] = true;
-            console.log(board.ships[idx].hit);
-            board.ships[idx].hit.forEach(function (hit_miss) {
-               if (!hit_miss) {
-                  sunk = false;
-               }
-            });
-            board.ships[idx].sunk = sunk;
+            board.shipPlaces[idx].splice(idx2, 1);
+            if (!board.shipPlaces[idx].length) {
+               board.shipPlaces.splice(idx, 1);
+               board.ships.splice(idx, 1); // removes ship from board
+               sunk = true;
+            }
          }
       });
    });
@@ -669,7 +642,17 @@ function startGuess(board, guess) {
       if (sunk) {
          console.log("Sunk");
          document.getElementById("hit-p").innerHTML = "You sunk a ship!!";
-         board.ships.splice(shipIdx, 1); // removes ship
+         if (!board.ships.length) { // no ships remaining, the game is won
+            won = true;
+            let winnerBoard = board === boardsOnScreen[0] ? boardsOnScreen[1] : boardsOnScreen[0];
+            document.getElementById("hit-p").innerHTML = winnerBoard.player + ", you WIN!!!";
+            document.getElementById("hit-p").parentNode.querySelectorAll("p")[1].innerHTML = "You sunk all of your opponent's ships! Press the \"X\" in the upper right hand corner to go back to the main menu.";
+            document.getElementById("done-btn").style.display = "none";
+            boardsOnScreen.forEach(function (b) {
+               b.deleteDraw();
+            });
+            boardsOnScreen = [];
+         }
       }
    }
    else {
@@ -681,7 +664,7 @@ function startGuess(board, guess) {
 
 function goToInstr() {
    document.getElementById("instr-container").style.display = "block";
-   document.getElementById("instr-header").style.display = "block";
+   document.getElementById("instr-header").style.display = "inline";
 }
 
 function setBoardHeight() {

@@ -7,7 +7,6 @@
    <style>
       :root {
          --bg-color: #5d98f7;
-         --header-border: #4a7dce;
          --table-bg: #5483ce;
          --th-bg: #fff;
          --instr-aside-bg: #a5b3c9;
@@ -38,12 +37,12 @@
       h1 {
          margin: 0;
          padding-top: 20px;
+         font-size: 5vw;
       }
       p {
          font-size: 2vw;
       }
       .header-div {
-         border-bottom: 1px solid var(--header-border);
          padding-top: 10px;
          margin: 0;
          display: none;
@@ -113,6 +112,9 @@
           cursor: none;
           border: 1px solid #777;
        }
+       .float {
+          box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.2);
+       }
        .table-div-container {
           position: relative;
           display: inline-block;
@@ -137,14 +139,23 @@
           margin: auto;
        }
        #instructions-aside {
+          text-align: justify;
           z-index: 4;
           left: -48%;
           position: absolute;
           height: 80%;
           width: 30%;
           background: var(--instr-aside-bg);
-          border-left: 1px solid white;
+          box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.2);
           padding: 10%;
+          -webkit-transition: left .7s ease-in-out;
+          -moz-transition: left .7s ease-in-out;
+       }
+       #instructions-aside:hover {
+          left: 0;
+       }
+       #one-player-btn {
+          display: none;
        }
    </style>
 </head>
@@ -174,13 +185,13 @@
       <div id="instr-container-child">
          <p><strong>How to Play:</strong></p>
          <ol>
-            <li>One player start by dragging ships onto the board. Once all the ships are on the board, press done.</li>
+            <li>One player start by dragging ships onto the board. Change the orientation by double clicking or pressing space, v, or h while hovering over a ship. Once all the ships are on the board, click done.</li>
             <li>The next player should then place their ships.</li>
             <li>The person to go first is chosen at random. They will click on a space that they think the opponent placed a battleship. It will either result in a hit or a miss.</li>
             <li>A hit will result in that position turning red. A miss will result in that position turning gray.</li>
             <li>The other player will then take their turn.</li>
             <li>Once a player hits all parts of a ship, it sinks. And once a player sinks all of the opponent's ships, the game is won!</li>
-            <li>Pull the bar on the right to display more information during gameplay.</li>
+            <li>Hover over the bar on the right to display more information during gameplay.</li>
          </ol>
          <br/>
          <p><strong>Settings:</strong></p>
@@ -199,7 +210,7 @@
             </tr>
             <tr>
                <td id="done-btn-cell">
-                  <p>Player one, place your ships.</p>
+                  <p style="padding: 0 10% 0 10%;">Player one, place your ships.</p>
                   <button id="done-btn">Done</button>
                </td>
             </tr>
