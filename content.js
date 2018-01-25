@@ -187,13 +187,13 @@ class Board {
 
       this.shipPlaces = [];
       this.guesses = [];
-
       // Creates array of Ship objects
       this.ships = [];
       let _this = this; // allows this to work in foreach loop
       SHIP_SIZES.forEach(function(length, idx) {
          _this.ships.push(new Ship(0, _this.height/(_this.size + 1), length * _this.height/(_this.size + 1) - 6, _this.width/(_this.size + 1) - 6, length));
       });
+      boardsOnScreen.push(this);
    }
 
    saveShipPlaces() {
@@ -238,9 +238,7 @@ class Board {
             sPlace.forEach(function (s) {
                s.forEach(function (p) {
                   if (ship.orientation === "v") {
-                     console.log(p, ship.spot);
                      for(let i = 0; i < ship.length; ++i) {
-                        console.log(p[0], ship.spot[0]);
                         if (p[0] === ship.spot[0] + i && p[1] === ship.spot[1]) {
                            safe = false;
                            break;
@@ -343,7 +341,7 @@ class Board {
                td = document.createElement("td");
 
                // adds id to each cell in the form [col]_[row]
-               td.id = (r - 1).toString() + "_" +(q - 1).toString();
+               td.id = boardsOnScreen.indexOf(this).toString() + "_" +(q - 1).toString() + "_" + (r - 1).toString();
             }
             td.setAttribute("width", this.width / (this.size + 1)); // check
             tr.appendChild(td);
@@ -469,9 +467,7 @@ function initTwoPlayer() {
 
    // creates boards
    board1 = new Board(boardHeight, boardHeight, "Player One");
-   boardsOnScreen.push(board1);
    board2 = new Board(boardHeight, boardHeight, "Player Two");
-   boardsOnScreen.push(board2);
 
    document.getElementById("two-player-mode").style.display = "inline";
 
@@ -522,32 +518,51 @@ function gameplayTwoPlayer() {
    let guess = [];
    let guessOpen = true;
    let hit = false;
-   let clicked = false;
+   let clicked = false; // Makes sure a position was chosen
 
    let doneBtnP = document.getElementById("done-btn-cell").querySelector("p");
    doneBtnP.innerHTML =
    startingPlayer + " has been chosen to go first. Click \"Start\" to begin.";
    doneBtn.innerHTML = "Start";
+
+   board1.drawing.querySelector("table").className += " hover";
+   board2.drawing.querySelector("table").className += " hover";
+
+   let hitP = document.createElement("p");
+   hitP.style.fontSize = "5vw";
+   hitP.id = "hit-p";
+   doneBtn.parentNode.insertBefore(hitP, doneBtnP);
+
    let startClick;
    doneBtn.addEventListener("click", startClick = function () {
-      if (doneBtn.innerHTML === "Done" && clicked) {
+      if (doneBtn.innerHTML === "Done" && clicked && guessOpen) {
+         hitP.style.display = "block";
          if (randInt === 0) {
             if (guessOpen) {
-               guess(board, guess);
-
+               doneBtn.innerHTML = "Start";
+               startGuess(board2, guess);
+               board2.drawing.parentNode.style.display = "none";
+               doneBtnP.innerHTML = "Player Two, your turn.";
+               randInt = 1;
             }
-
-            board2.drawing.parentNode.style.display = "none";
-            doneBtnP.innerHTML = "Player Two, your turn.";
-            randInt = 1;
-
          } else {
-            board1.drawing.parentNode.style.display = "none";
-            doneBtnP.innerHTML = "Player One, your turn.";
-            randInt = 0;
+            if (guessOpen) {
+               doneBtn.innerHTML = "Start";
+               startGuess(board1, guess);
+               board1.drawing.parentNode.style.display = "none";
+               doneBtnP.innerHTML = "Player One, your turn.";
+               randInt = 0;
+            }
          }
          clicked = false;
+      } else if (doneBtn.innerHTML === "Done" && !clicked) {
+         doneBtnP.innerHTML = "Please click a position on the board."
+      } else if (doneBtn.innerHTML === "Done" && clicked && !guessOpen){
+         doneBtnP.innerHTML = "That spot has already been chosen. Choose another one.";
+         console.log("Already taken");
       } else {
+         hitP.style.display = "none";
+         doneBtn.innerHTML = "Done";
          doneBtnP.innerHTML = "Guess a spot and click \"Done\" when finished.";
          if (randInt === 0) {
             board2.drawing.parentNode.style.display = "inline-block";
@@ -556,65 +571,111 @@ function gameplayTwoPlayer() {
          }
 
       }
-      doneBtn.innerHTML = doneBtn.innerHTML === "Start" ? "Done" : "Start";
 
    });
 
-   board1.drawing.querySelector("table").setAttribute("cursor", "crosshair");
-   board2.drawing.querySelector("table").setAttribute("cursor", "crosshair");
-
+   // modularize
    board1.drawing.querySelector("table").addEventListener("click", function (event) {
+
       clicked = true;
       guessOpen = true;
       hit = false;
       guess = [];
+      let tdId = event.target.id;
+
       if (event.target.id) {
-         guess.push(~~event.target.id.substring(0, event.target.id.indexOf("_")));
-         guess.push(~~event.target.id.substring(event.target.id.indexOf("_")));
+         tdId = tdId.substring(tdId.indexOf("_") + 1);
+         guess.push(~~tdId.substring(0, tdId.indexOf("_")));
+         guess.push(~~tdId.substring(tdId.indexOf("_") + 1));
+         console.log(guess);
          board1.guesses.forEach(function(g) {
-            if (g === guess) {
+            if (g[0] === guess[0] && g[1] === guess[1]) {
                guessOpen = false;
             }
          });
-
+         if (guessOpen) {
+            board1.drawing.querySelectorAll("td").forEach(function (td) {
+               if (td.style.background === "green") {
+                  td.style.background = "#5483ce";
+               }
+            })
+            event.target.style.background = "green";
+         }
       }
 
 
    });
    board2.drawing.querySelector("table").addEventListener("click", function (event) {
+         clicked = true;
+         guessOpen = true;
+         hit = false;
+         guess = [];
+         let tdId = event.target.id;
+
+         if (event.target.id) {
+            tdId = tdId.substring(tdId.indexOf("_") + 1);
+            console.log(tdId);
+            guess.push(~~tdId.substring(0, tdId.indexOf("_")));
+            guess.push(~~tdId.substring(tdId.indexOf("_") + 1));
+            console.log(guess);
+            board2.guesses.forEach(function(g) {
+               if (g[0] === guess[0] && g[1] === guess[1]) {
+                  guessOpen = false;
+               }
+            });
+            if (guessOpen) {
+               board2.drawing.querySelectorAll("td").forEach(function (td) {
+                  if (td.style.background === "green") {
+                     td.style.background = "#5483ce";
+                  }
+               })
+               event.target.style.background = "green";
+            }
+
+         }
 
    });
 
 }
 
-function guess(board, guess) {
+function startGuess(board, guess) {
    let hit = false;
    let sunk = true;
    let shipIdx;
    board.guesses.push(guess);
+   console.log(board.shipPlaces);
    board.shipPlaces.forEach(function (s, idx) {
-      s.forEach(function (p) {
-         if (guess === p) {
+      s.forEach(function (p, idx2) {
+         if (guess[0] === p[0] && guess[1] === p[1]) {
+            shipIdx = idx;
             hit = true;
-            board.ships[s].hit[p] = true;
-            board.ships[s].hit.forEach(function (hit_miss) {
+            console.log(p);
+            console.log(board.ships[idx].hit[idx2]);
+            board.ships[idx].hit[idx2] = true;
+            console.log(board.ships[idx].hit);
+            board.ships[idx].hit.forEach(function (hit_miss) {
                if (!hit_miss) {
                   sunk = false;
                }
             });
-            board.ships[s].sunk = sunk;
+            board.ships[idx].sunk = sunk;
          }
       });
    });
    if (hit) {
-      console.log("hit");
+      console.log("Hit");
+      document.getElementById("hit-p").innerHTML = "HIT!";
+      document.getElementById(boardsOnScreen.indexOf(board) + "_" + guess[0].toString() + "_" + guess[1].toString()).style.background = "red";
       if (sunk) {
-         console.log("sunk");
-         board.ships.splice(idx, 1); // removes ship
+         console.log("Sunk");
+         document.getElementById("hit-p").innerHTML = "You sunk a ship!!";
+         board.ships.splice(shipIdx, 1); // removes ship
       }
    }
    else {
-      console.log("miss");
+      console.log("Miss");
+      document.getElementById("hit-p").innerHTML = "Miss.";
+      document.getElementById(boardsOnScreen.indexOf(board) + "_" + guess[0].toString() + "_" + guess[1].toString()).style.background = "#a9b7ce";
    }
 }
 

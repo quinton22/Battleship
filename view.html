@@ -39,6 +39,9 @@
          margin: 0;
          padding-top: 20px;
       }
+      p {
+         font-size: 2vw;
+      }
       .header-div {
          border-bottom: 1px solid var(--header-border);
          padding-top: 10px;
@@ -68,6 +71,9 @@
          border: 1px solid black;
          border-collapse: collapse;
          background: var(--table-bg);
+      }
+      .hover:hover {
+         cursor: pointer;
       }
       caption {
          background: none !important;
@@ -171,6 +177,7 @@
             <li>One player start by dragging ships onto the board. Once all the ships are on the board, press done.</li>
             <li>The next player should then place their ships.</li>
             <li>The person to go first is chosen at random. They will click on a space that they think the opponent placed a battleship. It will either result in a hit or a miss.</li>
+            <li>A hit will result in that position turning red. A miss will result in that position turning gray.</li>
             <li>The other player will then take their turn.</li>
             <li>Once a player hits all parts of a ship, it sinks. And once a player sinks all of the opponent's ships, the game is won!</li>
             <li>Pull the bar on the right to display more information during gameplay.</li>
