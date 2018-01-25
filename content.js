@@ -2,6 +2,7 @@
 const SHIP_SIZES = [5, 4, 3, 3, 2]; // size of each ship
 const COLUMN_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S",
    "T", "U", "V", "W", "X", "Y", "Z"];
+const BOARD_SIZE = 10;
 
 var boardsOnScreen = []; // all boards that are created
 var board1; // board1 global var
@@ -51,6 +52,11 @@ window.addEventListener("resize", function () {
 
 
 window.onload = function() {
+   // set settings numbers
+   document.getElementById("num-ship-setting").innerHTML += SHIP_SIZES.length.toString();
+   document.getElementById("ship-size-setting").innerHTML += SHIP_SIZES.toString();
+   document.getElementById("board-size-setting").innerHTML += BOARD_SIZE.toString() + "x" + BOARD_SIZE.toString();
+
    // click event to one player button
    document.getElementById("one-player-btn").addEventListener("click", function () {
       console.log("Init 1 player mode");
@@ -314,7 +320,7 @@ function gameplayTwoPlayer() {
       } else { // no board is displayed
          hitP.style.display = "none";
          doneBtn.innerHTML = "Done";
-         doneBtnP.innerHTML = "Guess a spot and click \"Done\" when finished.";
+         doneBtnP.innerHTML = "Guess a spot then click \"Done\".";
          if (randInt === 0) { // player 1 turn
             board2.drawing.parentNode.style.display = "inline-block";
             doneBtnP.innerHTML += " Your opponent has " + board2.ships.length.toString(); // ships left of opponent
@@ -625,7 +631,7 @@ class Board {
       this.height = height; // height (px)
       this.width = width; // width (px)
       this.player = player; // Player One / Two
-      this.size = 10; // Playable grid size
+      this.size = BOARD_SIZE; // Playable grid size
       this.drawing = null; // the html element of the board object
       this.shipPlaces = []; // the places of all the ships on this board
       this.guesses = []; // all the guess on this board
