@@ -4,6 +4,8 @@ const COLUMN_LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "
    "T", "U", "V", "W", "X", "Y", "Z"];
 
 var boardsOnScreen = [];
+var board1;
+var board2;
 
 class Ship {
    constructor(x, y, height, width, length, id) {
@@ -16,6 +18,7 @@ class Ship {
       this.orientation = "v"; // v = vertical, h = horizontal
       this.spot = null; //Row and col of the ship, leftmost and uppermost
       this.hit = []; // array of hit / miss starting at uppermost or leftmost
+      this.sunk = false;
       this.rememberX = x; // last x position
       this.rememberY = y; // last x position
       for (let i = 0; i < this.length; ++i) {
@@ -189,33 +192,87 @@ class Board {
       this.ships = [];
       let _this = this; // allows this to work in foreach loop
       SHIP_SIZES.forEach(function(length, idx) {
-         _this.ships.push(new Ship(0, _this.height/(_this.size + 1), length * _this.height/(_this.size + 1) - 6, _this.width/(_this.size + 1) - 6, length, "ship" + idx.toString()));
+         _this.ships.push(new Ship(0, _this.height/(_this.size + 1), length * _this.height/(_this.size + 1) - 6, _this.width/(_this.size + 1) - 6, length));
       });
-      this.shipset = false;
    }
 
-   saveShipPlace() {
+   saveShipPlaces() {
+      this.shipPlaces = [];
+      let _this = this;
+      let safe = true;
       this.ships.forEach(function(ship) {
-         // clone to remove event listeners
-         let clone = ship.drawing.cloneNode();
-         ship.drawing.parentNode.replaceChild(clone, ship.drawing);
-         ship.drawing = clone;
-         ship.drawing.className += " shipset";
 
-         let shipPosition = [];
-         shipPosition.push(ship.spot);
-         if (ship.orientation === "v") {
-            for(let i = 1; i < ship.length; ++i) {
-               shipPosition.push([ship.spot[0] + i, ship.spot[1]]);
-            }
+         if (!ship.spot) {
+            safe = false;
          } else {
-            for(let i = 1; i < ship.length; ++i) {
-               shipPosition.push([ship.spot[0], ship.spot[1] + i]);
+            let shipPosition = [];
+            shipPosition.push(ship.spot);
+            if (ship.orientation === "v") {
+               for(let i = 1; i < ship.length; ++i) {
+                  shipPosition.push([ship.spot[0] + i, ship.spot[1]]);
+               }
+            } else {
+               for(let i = 1; i < ship.length; ++i) {
+                  shipPosition.push([ship.spot[0], ship.spot[1] + i]);
+               }
             }
+            _this.shipPlaces.push(shipPosition);
+
          }
-         console.log(shipPosition);
-         this.shipPlaces.push(shipPosition);
       });
+      if (safe) {
+         let sPlace;
+         this.ships.forEach(function(ship, idx) {
+            sPlace = _this.shipPlaces.slice(0);
+            let shipPos =[];
+            if (ship.orientation === "v") {
+               for (let i = 0; i < ship.length; ++i) {
+                  shipPos.push([ship.spot[0] + i, ship.spot[1]]);
+               }
+            } else {
+               for (let i = 0; i < ship.length; ++i) {
+                  shipPos.push([ship.spot[0], ship.spot[1] + i]);
+               }
+            }
+            sPlace.splice(idx, 1); // ensures that ship doesn't check itself
+            sPlace.forEach(function (s) {
+               s.forEach(function (p) {
+                  if (ship.orientation === "v") {
+                     console.log(p, ship.spot);
+                     for(let i = 0; i < ship.length; ++i) {
+                        console.log(p[0], ship.spot[0]);
+                        if (p[0] === ship.spot[0] + i && p[1] === ship.spot[1]) {
+                           safe = false;
+                           break;
+                        }
+                     }
+                  } else {
+                     for(let i = 1; i < ship.length; ++i) {
+                        if (p[0] === ship.spot[0] && p[1] === ship.spot[1] + i) {
+                           safe = false;
+                           break;
+                        }
+                     }
+                  }
+               });
+            });
+         })
+
+         if (safe) {
+            this.ships.forEach(function(ship) {
+               // clone to remove event listeners
+               let clone = ship.drawing.cloneNode();
+               ship.drawing.parentNode.replaceChild(clone, ship.drawing);
+               ship.drawing = clone;
+               ship.drawing.className += " shipset";
+
+
+            });
+      }
+
+      }
+      return safe;
+
    }
 
    hideShips() {
@@ -369,17 +426,17 @@ window.onload = function() {
       if (document.getElementById("instr-container").style.display === "block") {
          document.getElementById("instr-header").style.display = "none";
          document.getElementById("instr-container").style.display = "none";
-         titleDiv.style.display = "block";
+         titleDiv.style.display = "ineline-block";
       } else if (document.getElementById("one-player-mode").style.display === "block") {
          document.getElementById("one-player-mode").style.display = "none";
-         titleDiv.style.display = "block";
+         titleDiv.style.display = "inline-block";
          boardsOnScreen.forEach(function (b) {
             b.deleteDraw();
          });
          document.getElementById("board-container").style.display = "none";
       } else if (document.getElementById("two-player-mode").style.display === "block") {
          document.getElementById("two-player-mode").style.display = "none";
-         titleDiv.style.display = "block";
+         titleDiv.style.display = "inline-block";
          boardsOnScreen = [];
          document.getElementsByClassName("table-div-container")[0].parentNode.removeChild(document.getElementsByClassName("table-div-container")[0]);
          document.getElementById("board-container").style.display = "none";
@@ -403,7 +460,7 @@ function hideTitle(mode) {
 
 // Starts the one player mode
 function initOnePlayer() {
-   document.getElementById("one-player-mode").style.display = "block";
+   document.getElementById("one-player-mode").style.display = "inline";
 }
 
 // Starts the two player mode
@@ -411,12 +468,12 @@ function initTwoPlayer() {
    let boardHeight = setBoardHeight(); // Sets board height and width depending on the page size
 
    // creates boards
-   let board1 = new Board(boardHeight, boardHeight, "Player One");
+   board1 = new Board(boardHeight, boardHeight, "Player One");
    boardsOnScreen.push(board1);
-   let board2 = new Board(boardHeight, boardHeight, "Player Two");
+   board2 = new Board(boardHeight, boardHeight, "Player Two");
    boardsOnScreen.push(board2);
 
-   document.getElementById("two-player-mode").style.display = "block";
+   document.getElementById("two-player-mode").style.display = "inline";
 
 
    let instrP = document.createElement("p");
@@ -425,40 +482,140 @@ function initTwoPlayer() {
    instrP.setAttribute("margin-top", "10%");
 
    board1.draw();
-   board2.draw();
 
    // SET TIMEOUT FOR ASIDE TO DISPLAY
-   let doneBtn = document.getElementById("done-btn");
    let doneBtnClick;
-   doneBtn.addEventListener("click", doneBtnClick = function () {
-      if (board1.drawing.style.display = "block") {
-         board1.saveShipPlaces();
-         board1.drawing.style.display = "none";
-         board1.drawing.querySelector("aside").style.display = "none";
-         board2.drawing.style.display = "block";
+   document.getElementById("done-btn").addEventListener("click", doneBtnClick = function () {
+      if (board1.drawing.parentNode.style.display !== "none") {
+         if (board1.saveShipPlaces()) {
+            board1.drawing.parentNode.style.display = "none";
+            board1.drawing.parentNode.querySelector("aside").style.display = "none";
+            board2.draw();
+            document.getElementById("done-btn-cell").querySelector("p").innerHTML = "Player two, place your ships.";
+         } else {
+            document.getElementById("done-btn-cell").querySelector("p").innerHTML = "Please place your ships on the board and do not overlap.";
+         }
+
       } else { // board 2 handler
-         board2.saveShipPlaces();
-         board1.drawing.style.display = "none";
-         board1.drawing.querySelector("aside").style.display = "none";
+         if (board2.saveShipPlaces()) {
+            board2.drawing.parentNode.style.display = "none";
+            board2.drawing.parentNode.querySelector("aside").style.display = "none";
+            document.getElementById("done-btn").removeEventListener("click", doneBtnClick);
+            gameplayTwoPlayer();
+         } else {
+            document.getElementById("done-btn-cell").querySelector("p").innerHTML = "Please place your ships on the board and do not overlap.";
+         }
       }
    });
 
-   doneBtn.removeEventListener("click", doneBtnClick);
+}
 
-   document.getElementById
-   let commentary = document.createElement("p");
+function gameplayTwoPlayer() {
+   let doneBtn = document.getElementById("done-btn");
    let randInt = Math.floor(Math.random() * 2);
    let startingPlayer = "Player One";
    if (randInt === 1) {
       startingPlayer = "Player Two";
    }
-   commentary.innerHTML = startingPlayer + " has been picked to go first. Click \"Start\" to begin";
+   board1.hideShips();
+   board2.hideShips();
+   let guess = [];
+   let guessOpen = true;
+   let hit = false;
+   let clicked = false;
+
+   let doneBtnP = document.getElementById("done-btn-cell").querySelector("p");
+   doneBtnP.innerHTML =
+   startingPlayer + " has been chosen to go first. Click \"Start\" to begin.";
    doneBtn.innerHTML = "Start";
-   doneBtn.parentNode.insertBefore(commentary);
+   let startClick;
+   doneBtn.addEventListener("click", startClick = function () {
+      if (doneBtn.innerHTML === "Done" && clicked) {
+         if (randInt === 0) {
+            if (guessOpen) {
+               guess(board, guess);
+
+            }
+
+            board2.drawing.parentNode.style.display = "none";
+            doneBtnP.innerHTML = "Player Two, your turn.";
+            randInt = 1;
+
+         } else {
+            board1.drawing.parentNode.style.display = "none";
+            doneBtnP.innerHTML = "Player One, your turn.";
+            randInt = 0;
+         }
+         clicked = false;
+      } else {
+         doneBtnP.innerHTML = "Guess a spot and click \"Done\" when finished.";
+         if (randInt === 0) {
+            board2.drawing.parentNode.style.display = "inline-block";
+         } else {
+            board1.drawing.parentNode.style.display = "inline-block";
+         }
+
+      }
+      doneBtn.innerHTML = doneBtn.innerHTML === "Start" ? "Done" : "Start";
+
+   });
+
+   board1.drawing.querySelector("table").setAttribute("cursor", "crosshair");
+   board2.drawing.querySelector("table").setAttribute("cursor", "crosshair");
+
+   board1.drawing.querySelector("table").addEventListener("click", function (event) {
+      clicked = true;
+      guessOpen = true;
+      hit = false;
+      guess = [];
+      if (event.target.id) {
+         guess.push(~~event.target.id.substring(0, event.target.id.indexOf("_")));
+         guess.push(~~event.target.id.substring(event.target.id.indexOf("_")));
+         board1.guesses.forEach(function(g) {
+            if (g === guess) {
+               guessOpen = false;
+            }
+         });
+
+      }
 
 
+   });
+   board2.drawing.querySelector("table").addEventListener("click", function (event) {
 
+   });
 
+}
+
+function guess(board, guess) {
+   let hit = false;
+   let sunk = true;
+   let shipIdx;
+   board.guesses.push(guess);
+   board.shipPlaces.forEach(function (s, idx) {
+      s.forEach(function (p) {
+         if (guess === p) {
+            hit = true;
+            board.ships[s].hit[p] = true;
+            board.ships[s].hit.forEach(function (hit_miss) {
+               if (!hit_miss) {
+                  sunk = false;
+               }
+            });
+            board.ships[s].sunk = sunk;
+         }
+      });
+   });
+   if (hit) {
+      console.log("hit");
+      if (sunk) {
+         console.log("sunk");
+         board.ships.splice(idx, 1); // removes ship
+      }
+   }
+   else {
+      console.log("miss");
+   }
 }
 
 function goToInstr() {

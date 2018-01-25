@@ -58,6 +58,7 @@
       #back-btn {
          font-size: 4vw;
          color: gray;
+         display: inline;
       }
       #back-btn:hover {
          color: white;
@@ -78,6 +79,9 @@
          background: var(--th-bg) !important;
          vertical-align: middle;
          text-align: center;
+      }
+      #done-btn-cell {
+         vertical-align: top;
       }
       #ship-container {
          float: left;
@@ -100,7 +104,7 @@
           border: 2px solid green;
        }
        .ship.shipset:hover {
-          cursor: crosshair;
+          cursor: none;
           border: 1px solid #777;
        }
        .table-div-container {
@@ -130,10 +134,11 @@
           z-index: 4;
           left: -48%;
           position: absolute;
-          height: 100%;
-          width: 50%;
+          height: 80%;
+          width: 30%;
           background: var(--instr-aside-bg);
           border-left: 1px solid white;
+          padding: 10%;
        }
    </style>
 </head>
@@ -173,7 +178,7 @@
          <br/>
          <p><strong>Settings:</strong></p>
          <ul>
-            <li id="theme-setting">Theme: Normal<button id="theme-btn">Change</button></li>
+            <li id="theme-setting">Theme: Normal <button id="theme-btn">Change</button></li>
          </ul>
       </div>
    </div>
@@ -186,7 +191,8 @@
                <td id="board-cell"></td>
             </tr>
             <tr>
-               <td>
+               <td id="done-btn-cell">
+                  <p>Player one, place your ships.</p>
                   <button id="done-btn">Done</button>
                </td>
             </tr>
