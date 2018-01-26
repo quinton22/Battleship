@@ -9,7 +9,8 @@ var board1; // board1 global var
 var board2; // board2 global var
 var won = false;
 var showShip; // function show ship declared global so it can be deleted
-
+var doneBtnClick; // function of clicking done button declared globally to be deleted
+var startClick;
 
 // handles resizing of window
 window.addEventListener("resize", function () {
@@ -108,9 +109,14 @@ window.onload = function() {
          document.getElementById("board-container").style.display = "none";
          titleDiv.style.display = "block";
          // resets wording and done button
+         if (document.getElementById("hit-p")) {
+            document.getElementById("hit-p").parentNode.removeChild(document.getElementById("hit-p"));
+         }
          document.getElementById("done-btn-cell").children[0].innerHTML = "Player one, place your ships."
          document.getElementById("done-btn").innerHTML = "Done";
          document.getElementById("done-btn").style.display = "inline-block";
+         document.getElementById("done-btn").removeEventListener("click", doneBtnClick); // removes double click event listener
+         document.getElementById("done-btn").removeEventListener("click", startClick);
          if (showShip) {
             document.removeEventListener("keydown", showShip); // removes show ship event listener
          }
@@ -121,14 +127,17 @@ window.onload = function() {
                document.getElementById("board-cell").removeChild(b.drawing.parentNode);
             }
          });
+         board1 = null; // deletes board object
+         board2 = null; // deletes board object
          boardsOnScreen = []; // resets boardsOnScreen
       }
       if (won) { // if the game has been won and exit
-         document.getElementById("done-btn-cell").removeChild(document.getElementById("done-btn-cell").children[0]); // removes win text
          document.getElementById("done-btn-cell").children[0].innerHTML = "Player one, place your ships." // resets other win text
          document.getElementById("done-btn").innerHTML = "Done"; // restes done button
          document.getElementById("done-btn").style.display = "inline-block";
          document.removeEventListener("keydown", showShip); //removes showship listener
+         board1 = null; // deletes board object
+         board2 = null; // deletes board object
          won = false; // resets won
       }
    });
@@ -191,13 +200,19 @@ function initTwoPlayer() {
    // sets instruction aside (on left)
    let instrP = document.createElement("p");
    instrP.innerHTML = "Place ships on the board by dragging them. Change their orientation by double clicking or pressing space, h, or v while hovered over them. Click \"Done\" when finished.";
-   document.getElementById("instructions-aside").appendChild(instrP);
+
+   // if not already an existing element here place element
+   if (document.getElementById("instructions-aside").children[0]) {
+      document.getElementById("instructions-aside").replaceChild(instrP, document.getElementById("instructions-aside").children[0]);
+   } else {
+      document.getElementById("instructions-aside").appendChild(instrP);
+   }
+
    instrP.setAttribute("margin-top", "10%");
 
    board1.draw(); // creates html element of board1
 
    // done button event listener to save ship places
-   let doneBtnClick;
    document.getElementById("done-btn").addEventListener("click", doneBtnClick = function () {
       if (board1.drawing.parentNode.style.display !== "none") { // board1 showing
          if (board1.saveShipPlaces()) { // saves ship places returns true if ships are on board and not overlapping
@@ -260,7 +275,6 @@ function gameplayTwoPlayer() {
          }
       }
    });
-
    let doneBtn = document.getElementById("done-btn"); // done button
    let randInt = Math.floor(Math.random() * 2); // random integer to decide who goes first
    let startingPlayer = "Player One";
@@ -269,9 +283,9 @@ function gameplayTwoPlayer() {
    }
    board1.hideShips(); // hides the ships for both boards
    board2.hideShips();
-   var guess = []; // sets variable for the guess
-   var guessOpen = true; // spot has not been guessed before (initially all)
-   var clicked = false; // Makes sure a position was chosen
+   let guess = []; // sets variable for the guess
+   let guessOpen = true; // spot has not been guessed before (initially all)
+   let clicked = false; // Makes sure a position was chosen
 
    // Displays start text
    let doneBtnP = document.getElementById("done-btn-cell").querySelector("p");
@@ -290,26 +304,21 @@ function gameplayTwoPlayer() {
    doneBtn.parentNode.insertBefore(hitP, doneBtnP);
 
    // click event for done button
-   let startClick;
    doneBtn.addEventListener("click", startClick = function () {
       if (doneBtn.innerHTML === "Done" && clicked && guessOpen) { // board is being displayed, spot was clicked, and is open
          hitP.style.display = "block"; // displays hit, miss, sunk, win
          if (randInt === 0) { // player 1
-            if (guessOpen) { // guess not already taken
-               doneBtn.innerHTML = "Start";
-               board2.drawing.parentNode.style.display = "none"; // hide board
-               doneBtnP.innerHTML = "Player Two, your turn.";
-               startGuess(board2, guess); // handles guess
-               randInt = 1; // alternates players -> player 2
-            }
+            doneBtn.innerHTML = "Start";
+            board2.drawing.parentNode.style.display = "none"; // hide board
+            doneBtnP.innerHTML = "Player Two, your turn.";
+            startGuess(board2, guess); // handles guess
+            randInt = 1; // alternates players -> player 2
          } else { // player 2
-            if (guessOpen) { // guess not already taken
-               doneBtn.innerHTML = "Start";
-               board1.drawing.parentNode.style.display = "none"; // hide board
-               doneBtnP.innerHTML = "Player One, your turn.";
-               startGuess(board1, guess); // handles guess
-               randInt = 0; // alternates players -> player 1
-            }
+            doneBtn.innerHTML = "Start";
+            board1.drawing.parentNode.style.display = "none"; // hide board
+            doneBtnP.innerHTML = "Player One, your turn.";
+            startGuess(board1, guess); // handles guess
+            randInt = 0; // alternates players -> player 1
          }
          clicked = false; // resets clicked
       } else if (doneBtn.innerHTML === "Done" && !clicked) { // if nothing clicked and board on screen
@@ -365,8 +374,6 @@ function gameplayTwoPlayer() {
                event.target.style.background = "green"; // sets clicked td to green
             }
          }
-
-
       });
    };
    clickBoard(board1);
