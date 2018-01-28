@@ -152,6 +152,9 @@ function setBoardHeight() {
    let maxSize = (window.innerHeight - document.querySelector("header").offsetHeight) * .6; // maximum size is 60% of window minus header
    let minSize = 190; // min size of board
    let height = boardContainer.offsetWidth/3; // height if in between max and min
+   if (maxSize < minSize) {
+      maxSize = minSize;
+   }
    if (height > maxSize) {
       return maxSize;
    } else if (height < minSize) {
@@ -752,12 +755,12 @@ class Board {
    redraw() {
       let trArray = this.drawing.querySelectorAll("tr");
       let _this = this;
-      this.drawing.querySelector("table").setAttribute("height", this.height.toString() + "px"); // sets height of table
-      this.drawing.querySelector("table").setAttribute("width", this.width.toString() + "px"); // sets width of table
+      this.drawing.querySelector("table").style.height = this.height.toString() + "px"; // sets height of table
+      this.drawing.querySelector("table").style.width = this.width.toString() + "px"; // sets width of table
 
       // sets height and width of table rows
       trArray.forEach(function(tr) {
-         tr.setAttribute("height", (_this.height / (_this.size + 1)).toString() + "px");
+         tr.style.height = (_this.height / (_this.size + 1)).toString() + "px";
          tr.style.width = (_this.width).toString() + "px";
       });
 
