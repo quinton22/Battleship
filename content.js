@@ -241,7 +241,7 @@ function initTwoPlayer() {
 // Handles gameplay for two players
 function gameplayTwoPlayer() {
    // set instructions aside
-   document.getElementById("instructions-aside").querySelector("p").innerHTML = "Click a position to guess, it will light up green. Then click \"Done.\" Blocks that are red indicate that you hit your oppenent's ship at that position. Blocks that are gray indicate that you have missed at that position. Hold \"s\" to see your board at any time.";
+   document.getElementById("instructions-aside").querySelector("p").innerHTML = "Click a position to guess, it will light up green. Then click \"Done.\" Blocks that are red indicate that you hit your opponent's ship at that position. Blocks that are gray indicate that you have missed at that position. Hold \"s\" to see your board at any time.";
 
    // keydown event handler to show board
    document.addEventListener("keydown", showShip = function(event) {
@@ -336,7 +336,7 @@ function gameplayTwoPlayer() {
             doneBtnP.innerHTML += board2.ships.length > 1 ? " ships left." : " ship left.";
          } else { // player 2 turn
             board1.drawing.parentNode.style.display = "inline-block";
-            doneBtnP.innerHTML += " Your oppenent has " + board1.ships.length.toString(); // ships left of opponent
+            doneBtnP.innerHTML += " Your opponent has " + board1.ships.length.toString(); // ships left of opponent
             doneBtnP.innerHTML += board1.ships.length > 1 ? " ships left." : " ship left.";
          }
       }
